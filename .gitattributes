@@ -1,0 +1,5 @@
+# Keep line endings consistent for anyone who clones this on macOS or Linux.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
