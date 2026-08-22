@@ -1,0 +1,634 @@
+/* Visual refinement layer. Loaded last so it can lift the base styles
+   without any of them needing to change. */
+
+:root {
+  --shadow-sm: 0 1px 2px rgb(16 20 28 / 0.04), 0 2px 6px rgb(16 20 28 / 0.05);
+  --shadow-md: 0 2px 6px rgb(16 20 28 / 0.05), 0 10px 26px rgb(16 20 28 / 0.08);
+  --shadow-lg: 0 6px 16px rgb(16 20 28 / 0.08), 0 26px 60px rgb(16 20 28 / 0.13);
+  --ease: cubic-bezier(0.32, 0.72, 0.35, 1);
+  --glow: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+:root[data-theme='dark'] {
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 6px rgb(0 0 0 / 0.28);
+  --shadow-md: 0 2px 8px rgb(0 0 0 / 0.34), 0 12px 30px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 8px 20px rgb(0 0 0 / 0.4), 0 30px 70px rgb(0 0 0 / 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ------------------------------------------------------------ typography --- */
+
+body {
+  font-feature-settings: 'cv05' 1, 'ss01' 1;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.017em;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+/* Scrollbars that do not shout. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 99px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--text-3);
+}
+
+/* A single visible focus treatment everywhere. */
+:where(button, a, input, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ------------------------------------------------------------- entrances --- */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(9px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.app {
+  animation: fade 0.3s var(--ease) both;
+}
+
+.auth-pitch,
+.auth-panel {
+  animation: rise 0.5s var(--ease) both;
+}
+
+.auth-panel {
+  animation-delay: 0.07s;
+}
+
+.modal {
+  animation: rise 0.24s var(--ease) both;
+}
+
+.modal-backdrop {
+  animation: fade 0.18s var(--ease) both;
+  backdrop-filter: blur(3px);
+}
+
+/* ------------------------------------------------------------ auth screen --- */
+
+/* A quiet gradient field so the landing page does not read as a plain form. */
+.auth-screen {
+  position: relative;
+  isolation: isolate;
+}
+
+.auth-screen::before,
+.auth-screen::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.auth-screen::before {
+  width: 620px;
+  height: 620px;
+  top: -260px;
+  left: -180px;
+  background: color-mix(in srgb, var(--accent) 17%, transparent);
+}
+
+.auth-screen::after {
+  width: 520px;
+  height: 520px;
+  bottom: -230px;
+  right: -140px;
+  background: color-mix(in srgb, var(--purple) 15%, transparent);
+}
+
+.auth-pitch h1 {
+  background: linear-gradient(
+    170deg,
+    var(--text) 30%,
+    color-mix(in srgb, var(--text) 62%, var(--accent)) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.auth-brand .brand-mark {
+  box-shadow: 0 0 0 1px var(--border), 0 6px 18px rgb(0 0 0 / 0.2);
+}
+
+.auth-panel {
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(8px);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+}
+
+.auth-demo {
+  box-shadow: var(--shadow-md);
+  position: relative;
+  padding-top: 30px;
+}
+
+/* Little window chrome on the demo block. */
+.auth-demo::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  width: 42px;
+  height: 8px;
+  border-radius: 99px;
+  background: radial-gradient(circle 4px at 4px 4px, #ff5f57 96%, transparent),
+    radial-gradient(circle 4px at 21px 4px, #febc2e 96%, transparent),
+    radial-gradient(circle 4px at 38px 4px, #28c840 96%, transparent);
+}
+
+.auth-points li::before {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 10%, transparent);
+}
+
+.auth-field input,
+.auth-password button,
+.auth-submit,
+.auth-guest button {
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease),
+    background 0.15s var(--ease), transform 0.12s var(--ease);
+}
+
+.auth-field input:focus {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.auth-submit {
+  background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 84%, #000));
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent) 34%, transparent);
+}
+
+.auth-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 18px color-mix(in srgb, var(--accent) 42%, transparent);
+}
+
+.auth-submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.auth-notice {
+  background: var(--amber-soft);
+  border: 1px solid color-mix(in srgb, var(--amber) 32%, transparent);
+  border-radius: 9px;
+  padding: 11px 13px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12.8px;
+  line-height: 1.5;
+}
+
+.auth-notice strong {
+  color: var(--amber);
+}
+
+.auth-notice span {
+  color: var(--text-2);
+}
+
+/* -------------------------------------------------------------- signature --- */
+
+.signature {
+  margin-top: 34px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  align-items: flex-start;
+}
+
+.sig-rule {
+  display: block;
+  width: 58px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--text-3), transparent);
+  opacity: 0.7;
+}
+
+.sig-body {
+  border: none;
+  background: none;
+  padding: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  text-align: left;
+}
+
+.sig-lead {
+  font-size: 10.5px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  opacity: 0.75;
+}
+
+.sig-cipher {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--text-2);
+  opacity: 0.72;
+  transition: opacity 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.sig-dollar {
+  color: var(--green);
+}
+
+.sig-body:hover .sig-cipher {
+  opacity: 1;
+  color: var(--text);
+}
+
+.sig-name {
+  font-family: var(--mono);
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--text);
+  animation: sig-decode 0.5s var(--ease) both;
+  background: linear-gradient(96deg, var(--accent), var(--purple));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@keyframes sig-decode {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+    letter-spacing: 0.5em;
+  }
+  to {
+    opacity: 1;
+    filter: none;
+    letter-spacing: 0.16em;
+  }
+}
+
+.sig-hint {
+  font-size: 10.5px;
+  color: var(--text-3);
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.signature.is-revealed .sig-rule {
+  background: linear-gradient(90deg, var(--accent), transparent);
+}
+
+/* ------------------------------------------------------------------ chrome --- */
+
+.topbar {
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  z-index: 20;
+}
+
+.brand-mark {
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.07), 0 2px 8px rgb(0 0 0 / 0.22);
+}
+
+.nav-pill {
+  transition: background 0.15s var(--ease), color 0.15s var(--ease),
+    border-color 0.15s var(--ease), transform 0.12s var(--ease);
+}
+
+.nav-pill:hover {
+  transform: translateY(-1px);
+}
+
+.nav-pill.active {
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.pill-num {
+  transition: background 0.2s var(--ease);
+}
+
+.primary-btn {
+  background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 85%, #000));
+  box-shadow: 0 1px 6px color-mix(in srgb, var(--accent) 32%, transparent);
+  transition: transform 0.12s var(--ease), box-shadow 0.15s var(--ease), filter 0.15s var(--ease);
+}
+
+.primary-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.primary-btn:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.icon-btn,
+.ghost-btn,
+.badge-btn,
+.account-btn {
+  transition: background 0.15s var(--ease), color 0.15s var(--ease),
+    border-color 0.15s var(--ease), transform 0.12s var(--ease);
+}
+
+.icon-btn:hover,
+.ghost-btn:hover,
+.badge-btn:hover,
+.account-btn:hover {
+  transform: translateY(-1px);
+}
+
+.account-btn {
+  box-shadow: var(--shadow-sm);
+}
+
+.account-menu {
+  animation: rise 0.16s var(--ease) both;
+  box-shadow: var(--shadow-lg);
+}
+
+/* --------------------------------------------------------------- progress --- */
+
+.progress-strip {
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.progress-track {
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.09);
+}
+
+.progress-fill {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.4), transparent);
+  animation: sheen 2.6s var(--ease) infinite;
+}
+
+@keyframes sheen {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+.sync-saving::before,
+.sync-saved::before,
+.sync-error::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.sync-saving::before {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+/* ---------------------------------------------------------------- lesson --- */
+
+.card {
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.lesson-hero {
+  box-shadow: var(--shadow-sm);
+}
+
+.cmd-chip {
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.12s var(--ease), box-shadow 0.16s var(--ease),
+    border-color 0.16s var(--ease);
+}
+
+.cmd-chip:hover {
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.22), 0 0 0 1px var(--term-green);
+}
+
+.cmd-chip:active {
+  transform: translateY(0);
+}
+
+.task {
+  transition: background 0.14s var(--ease);
+}
+
+.task-box {
+  transition: background 0.2s var(--ease), border-color 0.2s var(--ease),
+    transform 0.24s var(--ease);
+}
+
+.task.done .task-box {
+  animation: tick-pop 0.32s var(--ease) both;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 16%, transparent);
+}
+
+@keyframes tick-pop {
+  0% {
+    transform: scale(0.7);
+  }
+  55% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.quiz-opt {
+  transition: background 0.14s var(--ease), border-color 0.14s var(--ease),
+    color 0.14s var(--ease), transform 0.12s var(--ease);
+}
+
+.quiz-opt:not(:disabled):hover {
+  transform: translateX(2px);
+}
+
+.path-card,
+.compare-side {
+  transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease);
+}
+
+.path-card:hover,
+.compare-side:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  box-shadow: var(--shadow-sm);
+}
+
+.callout {
+  box-shadow: var(--shadow-sm);
+}
+
+/* -------------------------------------------------------------- terminal --- */
+
+.terminal {
+  box-shadow: var(--shadow-lg), inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+
+.term-body {
+  background: radial-gradient(
+    120% 90% at 50% 0%,
+    color-mix(in srgb, var(--term-blue) 4%, transparent),
+    transparent 62%
+  );
+}
+
+.term-input {
+  caret-color: var(--term-green);
+}
+
+.blk-suggest,
+.blk-fix {
+  animation: rise 0.22s var(--ease) both;
+}
+
+.sg-run {
+  transition: filter 0.14s var(--ease), transform 0.12s var(--ease);
+}
+
+.sg-run:hover {
+  transform: translateY(-1px);
+}
+
+.comp-chip {
+  transition: background 0.13s var(--ease), color 0.13s var(--ease);
+}
+
+/* ------------------------------------------------------- file explorer --- */
+
+.explorer {
+  box-shadow: var(--shadow-sm);
+}
+
+.ex-row {
+  transition: background 0.12s var(--ease);
+}
+
+.ex-row.is-cwd {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.ex-cd {
+  transition: opacity 0.14s var(--ease), color 0.14s var(--ease),
+    border-color 0.14s var(--ease);
+}
+
+.ex-preview {
+  animation: fade 0.16s var(--ease) both;
+}
+
+/* ---------------------------------------------------------- achievements --- */
+
+.badge {
+  transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease),
+    opacity 0.25s var(--ease), filter 0.25s var(--ease);
+}
+
+.badge:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.badge.earned {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--green) 22%, transparent);
+}
+
+.badge.earned .badge-icon {
+  filter: drop-shadow(0 2px 5px color-mix(in srgb, var(--green) 42%, transparent));
+}
+
+.badge-btn span {
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------------------------------------- mobile --- */
+
+.mobile-tabs button {
+  transition: color 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+
+@media (max-width: 860px) {
+  .auth-screen::before,
+  .auth-screen::after {
+    filter: blur(70px);
+    opacity: 0.75;
+  }
+
+  .signature {
+    margin-top: 26px;
+  }
+}

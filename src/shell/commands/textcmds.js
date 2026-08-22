@@ -215,6 +215,31 @@ export const textCommands = {
     }
   },
 
+  base64: {
+    summary: 'Encode text to base64, or decode it back with -d.',
+    usage: 'base64 [-d] [file]',
+    flags: { d: 'decode instead of encode' },
+    examples: ['echo hello | base64', 'echo YWRpdHlh | base64 -d'],
+    run: (ctx) => {
+      const { flags, args } = parseArgs(ctx.argv);
+      const { results, errors } = readInputs(ctx, args);
+      if (errors.length) return fail(joinLines(errors.map((e) => 'base64: ' + e)));
+
+      const input = results.map((r) => r.content).join('');
+      try {
+        if (flags.has('d')) {
+          const cleaned = input.replace(/\s/g, '');
+          if (!cleaned) return ok('');
+          const decoded = decodeURIComponent(escape(atob(cleaned)));
+          return ok(decoded.endsWith('\n') ? decoded : decoded + '\n');
+        }
+        return ok(btoa(unescape(encodeURIComponent(input.replace(/\n$/, '')))) + '\n');
+      } catch {
+        return fail('base64: invalid input\n');
+      }
+    }
+  },
+
   sort: {
     summary: 'Sort lines alphabetically, or numerically with -n.',
     usage: 'sort [-r] [-n] [-u] [file...]',

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { api } from '../state/api.js';
 
-export default function AuthScreen({ onAuthenticated, onSkip }) {
+export default function AuthScreen({ onAuthenticated, onSkip, accountsAvailable = true }) {
   const [mode, setMode] = useState('signin');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -97,9 +97,21 @@ export default function AuthScreen({ onAuthenticated, onSkip }) {
             <span className="d-cmd">echo &quot;Hello Kalvium&quot;</span>
             {'\n'}Hello Kalvium
           </pre>
+
+          <Signature />
         </section>
 
         <section className="auth-panel">
+          {!accountsAvailable && (
+            <div className="auth-notice">
+              <strong>Accounts are not switched on yet.</strong>
+              <span>
+                Everything works, but your progress will stay on this device. Use the button below to
+                start.
+              </span>
+            </div>
+          )}
+
           <div className="auth-tabs">
             <button
               className={mode === 'signin' ? 'active' : ''}
@@ -205,6 +217,37 @@ export default function AuthScreen({ onAuthenticated, onSkip }) {
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+// The credit, written so that decoding it is itself a lesson. Anyone who
+// finishes Mission 7 has everything they need to read it, and there is a
+// hidden ~/.signature in the filesystem for whoever runs ls -a.
+function Signature() {
+  const [revealed, setRevealed] = useState(false);
+
+  return (
+    <div className={'signature' + (revealed ? ' is-revealed' : '')}>
+      <span className="sig-rule" aria-hidden />
+      <button
+        className="sig-body"
+        onClick={() => setRevealed((r) => !r)}
+        title={revealed ? 'Hide' : 'Decode it'}
+        aria-label="Reveal who built this"
+      >
+        <span className="sig-lead">architected by</span>
+        {revealed ? (
+          <span className="sig-name">aditya</span>
+        ) : (
+          <code className="sig-cipher">
+            <span className="sig-dollar">$</span> echo YWRpdHlh | base64 -d
+          </code>
+        )}
+      </button>
+      <span className="sig-hint">
+        {revealed ? 'there is more of this hidden in the filesystem' : 'run it in the terminal, or tap'}
+      </span>
     </div>
   );
 }

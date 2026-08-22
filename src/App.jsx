@@ -15,6 +15,7 @@ export default function App() {
   const [booting, setBooting] = useState(true);
   const [account, setAccount] = useState(null); // { id, name, phone } or null for guest
   const [guest, setGuest] = useState(false);
+  const [accountsAvailable, setAccountsAvailable] = useState(true);
 
   const [state, setState] = useState(loadProgress);
   const [shell, setShell] = useState(() => Shell.restore(loadProgress().shell));
@@ -44,9 +45,9 @@ export default function App() {
       if (res.ok && res.data.user) {
         adoptServerState(res.data.user, res.data.progress);
       } else if (res.offline) {
-        // API not deployed or no connection: fall back to local-only so the
-        // app still works rather than showing a wall.
-        setGuest(true);
+        // The API is missing or misconfigured. Still show the landing page,
+        // but make it clear that only guest mode will work.
+        setAccountsAvailable(false);
       }
       setBooting(false);
     })();
@@ -226,6 +227,7 @@ export default function App() {
   if (!account && !guest) {
     return (
       <AuthScreen
+        accountsAvailable={accountsAvailable}
         onAuthenticated={(user, serverState, meta) => {
           adoptServerState(user, serverState);
           if (meta?.passwordWasReset) {

@@ -20,7 +20,16 @@ async function call(path, { method = 'GET', payload } = {}) {
     }
 
     if (!res.ok) {
-      return { ok: false, error: data.error || 'Something went wrong.', field: data.field, data };
+      // 5xx means the API exists but cannot serve, usually because the
+      // database keys are not configured yet. Treat it like being offline so
+      // the app degrades to local-only instead of locking everybody out.
+      return {
+        ok: false,
+        error: data.error || 'Something went wrong.',
+        field: data.field,
+        offline: res.status >= 500,
+        data
+      };
     }
     return { ok: true, data };
   } catch {
