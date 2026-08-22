@@ -4,6 +4,7 @@ import App from './App.jsx';
 import './styles.css';
 import './styles-auth.css';
 import './styles-polish.css';
+import './styles-admin.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

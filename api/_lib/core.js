@@ -65,6 +65,73 @@ export async function readSession(req) {
   }
 }
 
+/* ---------------------------------------------------------------- admin --- */
+
+const ADMIN_COOKIE = 'linuxlab_admin';
+const ADMIN_HOURS = 8;
+
+export function adminConfigured() {
+  return Boolean(process.env.ADMIN_PASSWORD && process.env.JWT_SECRET);
+}
+
+// Compares in constant time so the reply cannot be used to guess the password
+// one character at a time.
+export function adminPasswordMatches(attempt) {
+  const expected = process.env.ADMIN_PASSWORD || '';
+  if (typeof attempt !== 'string' || !expected) return false;
+  const a = new TextEncoder().encode(attempt);
+  const b = new TextEncoder().encode(expected);
+  let diff = a.length ^ b.length;
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    diff |= (a[i] ?? 0) ^ (b[i] ?? 0);
+  }
+  return diff === 0;
+}
+
+export async function createAdminSession() {
+  return new SignJWT({ role: 'admin' })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime(`${ADMIN_HOURS}h`)
+    .sign(secret());
+}
+
+export async function isAdmin(req) {
+  const raw = req.headers.cookie || '';
+  const match = raw
+    .split(';')
+    .map((c) => c.trim())
+    .find((c) => c.startsWith(ADMIN_COOKIE + '='));
+  if (!match) return false;
+  try {
+    const { payload } = await jwtVerify(
+      decodeURIComponent(match.slice(ADMIN_COOKIE.length + 1)),
+      secret()
+    );
+    return payload.role === 'admin';
+  } catch {
+    return false;
+  }
+}
+
+export function setAdminCookie(res, token) {
+  const parts = [
+    `${ADMIN_COOKIE}=${encodeURIComponent(token)}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Strict',
+    `Max-Age=${ADMIN_HOURS * 60 * 60}`
+  ];
+  if (process.env.VERCEL) parts.push('Secure');
+  res.setHeader('Set-Cookie', parts.join('; '));
+}
+
+export function clearAdminCookie(res) {
+  const parts = [`${ADMIN_COOKIE}=`, 'Path=/', 'HttpOnly', 'SameSite=Strict', 'Max-Age=0'];
+  if (process.env.VERCEL) parts.push('Secure');
+  res.setHeader('Set-Cookie', parts.join('; '));
+}
+
 export function setSessionCookie(res, token) {
   const parts = [
     `${COOKIE}=${encodeURIComponent(token)}`,

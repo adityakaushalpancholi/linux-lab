@@ -4,6 +4,7 @@ import LessonPane from './ui/LessonPane.jsx';
 import FileExplorer from './ui/FileExplorer.jsx';
 import AuthScreen from './ui/AuthScreen.jsx';
 import AchievementsPanel from './ui/AchievementsPanel.jsx';
+import AdminScreen from './ui/AdminScreen.jsx';
 import { Shell } from './shell/shell.js';
 import { lessons, lessonById, evaluateTasks } from './lessons/lessons.js';
 import { loadProgress, saveProgress, clearProgress, countDone, overallProgress } from './state/progress.js';
@@ -16,6 +17,9 @@ export default function App() {
   const [account, setAccount] = useState(null); // { id, name, phone } or null for guest
   const [guest, setGuest] = useState(false);
   const [accountsAvailable, setAccountsAvailable] = useState(true);
+  const [adminRoute, setAdminRoute] = useState(
+    () => typeof window !== 'undefined' && window.location.pathname.replace(/\/$/, '') === '/admin'
+  );
 
   const [state, setState] = useState(loadProgress);
   const [shell, setShell] = useState(() => Shell.restore(loadProgress().shell));
@@ -216,6 +220,17 @@ export default function App() {
   };
 
   /* ----------------------------------------------------------------- view --- */
+
+  if (adminRoute) {
+    return (
+      <AdminScreen
+        onExit={() => {
+          window.history.pushState({}, '', '/');
+          setAdminRoute(false);
+        }}
+      />
+    );
+  }
 
   if (booting) {
     return (
