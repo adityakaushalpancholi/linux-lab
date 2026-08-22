@@ -1,20 +1,77 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Terminal from './ui/Terminal.jsx';
 import LessonPane from './ui/LessonPane.jsx';
+import FileExplorer from './ui/FileExplorer.jsx';
+import AuthScreen from './ui/AuthScreen.jsx';
+import AchievementsPanel from './ui/AchievementsPanel.jsx';
 import { Shell } from './shell/shell.js';
 import { lessons, lessonById, evaluateTasks } from './lessons/lessons.js';
 import { loadProgress, saveProgress, clearProgress, countDone, overallProgress } from './state/progress.js';
+import { computeAchievements, earnedCount } from './state/achievements.js';
+import { api } from './state/api.js';
 import { downloadReport } from './report/pdf.js';
 
 export default function App() {
+  const [booting, setBooting] = useState(true);
+  const [account, setAccount] = useState(null); // { id, name, phone } or null for guest
+  const [guest, setGuest] = useState(false);
+
   const [state, setState] = useState(loadProgress);
-  const [shell] = useState(() => Shell.restore(state.shell));
-  const [tick, setTick] = useState(0); // forces a re-render when shell state changes
-  const [paneOpen, setPaneOpen] = useState('lesson'); // mobile toggle
+  const [shell, setShell] = useState(() => Shell.restore(loadProgress().shell));
+  const [tick, setTick] = useState(0);
+  const [paneOpen, setPaneOpen] = useState('lesson');
+  const [exporting, setExporting] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(false);
+  const [syncState, setSyncState] = useState('idle'); // idle | saving | saved | error
+
   const termRef = useRef(null);
+  const syncTimer = useRef(null);
+  const lastSynced = useRef('');
 
   const lesson = lessonById(state.currentLesson);
   const progress = useMemo(() => overallProgress(state, lessons), [state]);
+  const achievements = useMemo(() => computeAchievements(state, lessons), [state]);
+  const badgesEarned = earnedCount(achievements);
+
+  /* ---------------------------------------------------------------- boot --- */
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const res = await api.me();
+      if (cancelled) return;
+
+      if (res.ok && res.data.user) {
+        adoptServerState(res.data.user, res.data.progress);
+      } else if (res.offline) {
+        // API not deployed or no connection: fall back to local-only so the
+        // app still works rather than showing a wall.
+        setGuest(true);
+      }
+      setBooting(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function adoptServerState(user, serverState) {
+    setAccount(user);
+    setGuest(false);
+    if (serverState && Object.keys(serverState).length) {
+      const merged = { ...loadProgress(), ...serverState, name: serverState.name || user.name };
+      setState(merged);
+      setShell(Shell.restore(merged.shell));
+      lastSynced.current = JSON.stringify(stripForSync(merged));
+    } else {
+      // Brand new account: keep whatever they did as a guest, so nothing is lost.
+      setState((prev) => ({ ...prev, name: prev.name || user.name }));
+    }
+    setTick((t) => t + 1);
+  }
+
+  /* ------------------------------------------------------------ theme etc --- */
 
   useEffect(() => {
     shell.autofix = state.autofix;
@@ -28,18 +85,37 @@ export default function App() {
     saveProgress({ ...state, shell: shell.serialise() });
   }, [state, shell, tick]);
 
-  // Re-check tasks whenever the world changes.
-  const snapshot = useCallback(
-    () => ({
-      commands: shell.history,
-      fs: shell.fs,
-      shell,
-      cwd: shell.cwd,
-      aliases: shell.aliases,
-      reportGenerated: state.reportGenerated
-    }),
-    [shell, state.reportGenerated]
-  );
+  /* -------------------------------------------------------- cloud syncing --- */
+
+  const stripForSync = (s) => {
+    const { shell: _ignored, ...rest } = s;
+    return rest;
+  };
+
+  useEffect(() => {
+    if (!account) return;
+    const snapshot = { ...state, shell: shell.serialise() };
+    const fingerprint = JSON.stringify(stripForSync(snapshot));
+    if (fingerprint === lastSynced.current) return;
+
+    clearTimeout(syncTimer.current);
+    setSyncState('saving');
+    syncTimer.current = setTimeout(async () => {
+      const res = await api.saveProgress(snapshot, progress.done, progress.total);
+      if (res.ok) {
+        lastSynced.current = fingerprint;
+        setSyncState('saved');
+        setTimeout(() => setSyncState((s) => (s === 'saved' ? 'idle' : s)), 2000);
+      } else {
+        setSyncState('error');
+      }
+    }, 1500);
+
+    return () => clearTimeout(syncTimer.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, tick, account]);
+
+  /* ------------------------------------------------------------- checking --- */
 
   const recheck = useCallback(
     (extra) => {
@@ -58,17 +134,20 @@ export default function App() {
         for (const l of lessons) {
           const passed = evaluateTasks(l, snap);
           if (!passed.length) continue;
-          const existing = tasks[l.id] || {};
-          const merged = { ...existing };
+          const merged = { ...(tasks[l.id] || {}) };
+          let touched = false;
           for (const id of passed) {
             if (!merged[id]) {
               merged[id] = true;
-              changed = true;
+              touched = true;
             }
           }
-          if (changed) tasks[l.id] = merged;
+          if (touched) {
+            tasks[l.id] = merged;
+            changed = true;
+          }
         }
-        return changed ? { ...next, tasks } : next;
+        return changed || extra ? { ...next, tasks } : next;
       });
     },
     [shell]
@@ -79,10 +158,9 @@ export default function App() {
       setState((prev) => {
         const lessonId = prev.currentLesson;
         const existing = prev.transcript[lessonId] || [];
-        const trimmed = [...existing, entry].slice(-120);
         return {
           ...prev,
-          transcript: { ...prev.transcript, [lessonId]: trimmed },
+          transcript: { ...prev.transcript, [lessonId]: [...existing, entry].slice(-120) },
           sessionLog: [...(prev.sessionLog || []), entry].slice(-400)
         };
       });
@@ -102,7 +180,7 @@ export default function App() {
     termRef.current?.insert(cmd);
   }, []);
 
-  const [exporting, setExporting] = useState(false);
+  /* -------------------------------------------------------------- actions --- */
 
   const handleReport = async () => {
     const nextState = { ...state, reportGenerated: true };
@@ -120,12 +198,44 @@ export default function App() {
 
   const handleReset = () => {
     const sure = window.confirm(
-      'Reset everything? This clears your task progress, quiz answers, reflections and the practice filesystem. This cannot be undone.'
+      'Reset everything? This clears your task progress, quiz answers, reflections and the practice ' +
+        'filesystem. This cannot be undone.'
     );
     if (!sure) return;
     clearProgress();
     window.location.reload();
   };
+
+  const handleSignOut = async () => {
+    await api.logout();
+    clearProgress();
+    window.location.reload();
+  };
+
+  /* ----------------------------------------------------------------- view --- */
+
+  if (booting) {
+    return (
+      <div className="boot">
+        <div className="boot-mark">$_</div>
+        <div className="boot-text">Starting Linux Lab…</div>
+      </div>
+    );
+  }
+
+  if (!account && !guest) {
+    return (
+      <AuthScreen
+        onAuthenticated={(user, serverState, meta) => {
+          adoptServerState(user, serverState);
+          if (meta?.passwordWasReset) {
+            setTimeout(() => window.alert('Password updated. You are signed in.'), 100);
+          }
+        }}
+        onSkip={() => setGuest(true)}
+      />
+    );
+  }
 
   const doneMap = state.tasks[lesson.id] || {};
 
@@ -147,9 +257,7 @@ export default function App() {
             return (
               <button
                 key={l.id}
-                className={
-                  'nav-pill' + (l.id === lesson.id ? ' active' : '') + (complete ? ' complete' : '')
-                }
+                className={'nav-pill' + (l.id === lesson.id ? ' active' : '') + (complete ? ' complete' : '')}
                 onClick={() => {
                   setState((p) => ({ ...p, currentLesson: l.id }));
                   setPaneOpen('lesson');
@@ -164,7 +272,15 @@ export default function App() {
         </nav>
 
         <div className="topbar-right">
-          <label className="autofix" title="Suggest shows a hint. Auto-fix runs the corrected command for you.">
+          <button
+            className="badge-btn"
+            onClick={() => setShowAchievements(true)}
+            title="Your achievements"
+          >
+            🏆 <span>{badgesEarned}</span>
+          </button>
+
+          <label className="autofix" title="Suggest shows a hint. Auto-fix runs the corrected command.">
             <input
               type="checkbox"
               checked={state.autofix}
@@ -182,13 +298,17 @@ export default function App() {
             {state.theme === 'dark' ? '☀' : '☾'}
           </button>
 
-          <button className="ghost-btn" onClick={handleReset} title="Start completely over">
-            Reset
-          </button>
-
           <button className="primary-btn" onClick={handleReport} disabled={exporting}>
             {exporting ? 'Building…' : 'Export report'}
           </button>
+
+          <AccountMenu
+            account={account}
+            syncState={syncState}
+            onSignOut={handleSignOut}
+            onReset={handleReset}
+            onSignIn={() => setGuest(false)}
+          />
         </div>
       </header>
 
@@ -199,10 +319,23 @@ export default function App() {
         <span className="progress-text">
           {progress.done} of {progress.total} tasks · {progress.percent}%
         </span>
+        {account ? (
+          <span className={'sync-chip sync-' + syncState}>
+            {syncState === 'saving' && 'Saving…'}
+            {syncState === 'saved' && 'Saved to your account'}
+            {syncState === 'error' && 'Could not save — check your connection'}
+            {syncState === 'idle' && `Signed in as ${account.name}`}
+          </span>
+        ) : (
+          <span className="sync-chip sync-guest">
+            Guest mode — this device only.{' '}
+            <button onClick={() => setGuest(false)}>Sign in to save</button>
+          </span>
+        )}
         <input
           className="name-input"
           value={state.name}
-          placeholder="Your name (for the report)"
+          placeholder="Name for the report"
           onChange={(e) => setState((p) => ({ ...p, name: e.target.value }))}
         />
       </div>
@@ -238,6 +371,7 @@ export default function App() {
         </div>
 
         <div className={'pane term-pane' + (paneOpen === 'terminal' ? ' show' : '')}>
+          <FileExplorer shell={shell} tick={tick} onInsertCommand={insertCommand} />
           <Terminal
             ref={termRef}
             shell={shell}
@@ -247,6 +381,68 @@ export default function App() {
           />
         </div>
       </main>
+
+      {showAchievements && (
+        <AchievementsPanel
+          achievements={achievements}
+          progress={progress}
+          onClose={() => setShowAchievements(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function AccountMenu({ account, onSignOut, onReset, onSignIn }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  const initials = account
+    ? account.name
+        .split(' ')
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase()
+    : '?';
+
+  return (
+    <div className="account" ref={ref}>
+      <button className="account-btn" onClick={() => setOpen((o) => !o)} title="Account">
+        {initials}
+      </button>
+      {open && (
+        <div className="account-menu">
+          {account ? (
+            <>
+              <div className="account-who">
+                <strong>{account.name}</strong>
+                <span>{account.phone}</span>
+              </div>
+              <button onClick={onReset}>Reset my progress</button>
+              <button onClick={onSignOut}>Sign out</button>
+            </>
+          ) : (
+            <>
+              <div className="account-who">
+                <strong>Guest</strong>
+                <span>Not saved to an account</span>
+              </div>
+              <button onClick={onSignIn}>Sign in or create account</button>
+              <button onClick={onReset}>Reset my progress</button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
