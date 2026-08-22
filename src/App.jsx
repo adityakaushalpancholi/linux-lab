@@ -265,7 +265,9 @@ export default function App() {
           <span className="brand-mark">$_</span>
           <div>
             <div className="brand-name">Linux Lab</div>
-            <div className="brand-sub">Module 1 · Project Atlas</div>
+            <div className="brand-sub app-credit">
+              Module 1 · built by <strong>ADITYA</strong>
+            </div>
           </div>
         </div>
 

@@ -225,29 +225,35 @@ export default function AuthScreen({ onAuthenticated, onSkip, accountsAvailable 
 // finishes Mission 7 has everything they need to read it, and there is a
 // hidden ~/.signature in the filesystem for whoever runs ls -a.
 function Signature() {
-  const [revealed, setRevealed] = useState(false);
+  const [decoded, setDecoded] = useState(false);
 
   return (
-    <div className={'signature' + (revealed ? ' is-revealed' : '')}>
+    <div className="signature">
       <span className="sig-rule" aria-hidden />
+
+      <div className="sig-main">
+        <span className="sig-lead">designed, built and broken repeatedly by</span>
+        <span className="sig-name">ADITYA</span>
+        <span className="sig-role">
+          every command, every lesson, every safety rail &mdash; one pair of hands
+        </span>
+      </div>
+
       <button
-        className="sig-body"
-        onClick={() => setRevealed((r) => !r)}
-        title={revealed ? 'Hide' : 'Decode it'}
-        aria-label="Reveal who built this"
+        className={'sig-verify' + (decoded ? ' is-decoded' : '')}
+        onClick={() => setDecoded((d) => !d)}
+        title="Decode it"
       >
-        <span className="sig-lead">architected by</span>
-        {revealed ? (
-          <span className="sig-name">aditya</span>
+        <span className="sig-dollar">$</span>
+        {decoded ? (
+          <span className="sig-out">aditya</span>
         ) : (
-          <code className="sig-cipher">
-            <span className="sig-dollar">$</span> echo YWRpdHlh | base64 -d
-          </code>
+          <code>echo YWRpdHlh | base64 -d</code>
         )}
+        <span className="sig-verify-hint">
+          {decoded ? 'told you' : 'run it in the lab terminal'}
+        </span>
       </button>
-      <span className="sig-hint">
-        {revealed ? 'there is more of this hidden in the filesystem' : 'run it in the terminal, or tap'}
-      </span>
     </div>
   );
 }
