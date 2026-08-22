@@ -39,7 +39,10 @@ function truthy(label, value) {
 
 check('plain 10-digit', normalisePhone('9876543210'), '9876543210');
 check('with spaces', normalisePhone('98765 43210'), '9876543210');
-check('with country code', normalisePhone('+91 98765 43210'), '919876543210');
+check('with country code', normalisePhone('+91 98765 43210'), '9876543210');
+check('country code, no spaces', normalisePhone('+919876543210'), '9876543210');
+check('country code without plus', normalisePhone('919876543210'), '9876543210');
+check('leading zero dropped', normalisePhone('09876543210'), '9876543210');
 check('with dashes', normalisePhone('98765-43210'), '9876543210');
 check('with brackets', normalisePhone('(987) 654-3210'), '9876543210');
 check('too short', normalisePhone('12345'), null);
@@ -54,6 +57,22 @@ check(
   normalisePhone('98765 43210') === normalisePhone('9876543210'),
   true
 );
+
+// Every way a person might type one number has to reach one account.
+const oneNumber = [
+  '9876543210',
+  '98765 43210',
+  '98765-43210',
+  '+91 98765 43210',
+  '+919876543210',
+  '919876543210',
+  '09876543210'
+].map(normalisePhone);
+check('all spellings of one number agree', new Set(oneNumber).size, 1);
+
+// But a genuinely different number must stay different.
+check('different numbers stay apart', normalisePhone('9876543210') === normalisePhone('9876543211'), false);
+check('short numbers untouched', normalisePhone('918765432'), '918765432');
 
 /* ----------------------------------------------------------------- name --- */
 

@@ -95,12 +95,22 @@ export async function verifyPassword(plain, hash) {
 
 /* ------------------------------------------------------------ validation --- */
 
-// Accepts the way people actually type numbers: spaces, dashes, +country code.
-// Stores digits only so "98765 43210" and "9876543210" are the same account.
+// Accepts the way people actually type numbers: spaces, dashes, +country code,
+// a leading zero. All of these have to reach the same account, because someone
+// who signs up as "9876543210" and comes back typing "+91 98765 43210" would
+// otherwise be told their password is wrong, with no way to work out why.
 export function normalisePhone(input) {
   if (typeof input !== 'string') return null;
-  const digits = input.replace(/[\s()-]/g, '').replace(/^\+/, '');
+
+  let digits = input.replace(/[\s()+-]/g, '');
   if (!/^\d{7,15}$/.test(digits)) return null;
+
+  // Reduce to the local 10-digit number when a familiar prefix is present.
+  // Deliberately narrow: only shapes that cannot be a real 10-digit number
+  // themselves, so two genuinely different numbers can never collide.
+  if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
+  else if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+
   return digits;
 }
 
