@@ -42,6 +42,8 @@ export default function App() {
       const res = await api.me();
       if (cancelled) return;
 
+      if (res.ok && res.data.accountsReady === false) setAccountsAvailable(false);
+
       if (res.ok && res.data.user) {
         adoptServerState(res.data.user, res.data.progress);
       } else if (res.offline) {

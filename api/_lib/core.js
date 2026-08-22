@@ -20,6 +20,14 @@ function required(name) {
   return value;
 }
 
+// True only when every secret accounts need is present. Lets the client show
+// an honest message instead of letting someone fill in a form that cannot work.
+export function accountsConfigured() {
+  return Boolean(
+    process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.JWT_SECRET
+  );
+}
+
 let cachedDb = null;
 
 export function db() {
@@ -153,9 +161,16 @@ export function handler(fn) {
       await fn(req, res);
     } catch (err) {
       const configIssue = /Missing environment variable/.test(err.message);
-      json(res, configIssue ? 503 : 500, {
-        error: configIssue ? err.message : 'Something went wrong on the server.'
-      });
+      if (configIssue) {
+        // Detail goes to the server log for whoever set this up; the visitor
+        // gets something they can act on.
+        console.error(err.message);
+        return json(res, 503, {
+          error: 'Accounts are not set up on this site yet. Carry on as a guest for now.',
+          accountsReady: false
+        });
+      }
+      json(res, 500, { error: 'Something went wrong on the server.' });
     }
   };
 }
