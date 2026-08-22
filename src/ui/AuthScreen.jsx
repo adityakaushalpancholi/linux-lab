@@ -233,7 +233,7 @@ function Signature() {
 
       <div className="sig-main">
         <span className="sig-lead">designed, built and broken repeatedly by</span>
-        <span className="sig-name">ADITYA</span>
+        <span className="sig-name">Aditya</span>
         <span className="sig-role">
           every command, every lesson, every safety rail &mdash; one pair of hands
         </span>

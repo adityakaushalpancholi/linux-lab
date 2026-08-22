@@ -280,9 +280,9 @@ h3 {
 
 .sig-name {
   font-family: var(--mono);
-  font-size: 34px;
+  font-size: 36px;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.01em;
   line-height: 1.05;
   background: linear-gradient(96deg, var(--accent), var(--purple) 62%, var(--green));
   -webkit-background-clip: text;
@@ -369,7 +369,7 @@ h3 {
 .app-credit strong {
   color: var(--text-2);
   font-family: var(--mono);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.02em;
   font-weight: 700;
 }
 

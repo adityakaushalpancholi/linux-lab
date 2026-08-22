@@ -266,7 +266,7 @@ export default function App() {
           <div>
             <div className="brand-name">Linux Lab</div>
             <div className="brand-sub app-credit">
-              Module 1 · built by <strong>ADITYA</strong>
+              Module 1 · built by <strong>Aditya</strong>
             </div>
           </div>
         </div>
