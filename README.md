@@ -8,6 +8,8 @@ damage their real machine.
 Built to cover Kalvium Module 1: workstation setup through the graduation
 challenge.
 
+**Live:** https://linux-me974ombt-aditya2007aaditya-8644s-projects.vercel.app
+
 ## What it does
 
 **A real-feeling shell.** Pipes, redirection (`>`, `>>`, `<`), chaining
